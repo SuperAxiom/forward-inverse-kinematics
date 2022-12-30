@@ -6,6 +6,7 @@ using Latexify
 # Symbolical variables
 @variables a[1:6] s[1:6] c[1:6] d[1:6] s_a[1:6] c_a[1:6]
 
+# ----------CONSTRUCTING MECHANISM (DH PARAMS)----------
 # Creating dict with DH paramaters and fill it by random values
 function create_random_mechanism()
     mechanism = Dict("theta" => [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
@@ -45,21 +46,8 @@ function read_mechanism()
     return mechanism
 end
 
-# Create symbolical A matrices
-function create_symbolical_positions(a_arr, d_arr, alpha_arr)
-    result = []
-    for i in 1:6
-        a1 = [c[i] -s[i]*cosd(alpha_arr[i]) s[i]*sind(alpha_arr[i]) a_arr[i]*c[i]]
-        a2 = [s[i] c[i]*cosd(alpha_arr[i]) -c[i]*sind(alpha_arr[i]) a_arr[i]*s[i]]
-        a3 = [0 sind(alpha_arr[i]) cosd(alpha_arr[i]) d_arr[i]]
-        a4 = [0 0 0 1]
-        A = vcat(a1, a2, a3, a4)
-        push!(result, A)
-    end
 
-    return result
-end
-
+# ----------FORWARD KINEMATICS----------
 # Function takes dh paramaters, joints' angles and returns a pose of the end effector
 function fkt(mechanism, joints)
     T = [1 0 0 0; 0 1 0 0; 0 0 1 0; 0 0 0 1]      # ID matrix as result at the begining
@@ -87,6 +75,23 @@ function fkt(mechanism, joints)
     display(T)
 
     result = Dict("r" => T[1:3, 1:3], "t" => T[1:3, 4])
+    return result
+end
+
+
+# ----------INVERSE KINEMATICS----------
+# Create symbolical A matrices
+function create_symbolical_positions(a_arr, d_arr, alpha_arr)
+    result = []
+    for i in 1:6
+        a1 = [c[i] -s[i]*cosd(alpha_arr[i]) s[i]*sind(alpha_arr[i]) a_arr[i]*c[i]]
+        a2 = [s[i] c[i]*cosd(alpha_arr[i]) -c[i]*sind(alpha_arr[i]) a_arr[i]*s[i]]
+        a3 = [0 sind(alpha_arr[i]) cosd(alpha_arr[i]) d_arr[i]]
+        a4 = [0 0 0 1]
+        A = vcat(a1, a2, a3, a4)
+        push!(result, A)
+    end
+
     return result
 end
 
@@ -121,6 +126,8 @@ function create_equations(matr_eq)
     return result
 end
 
+
+# ----------MAPLE INTERACTION----------
 # Takes list of polynomial equations and creates maple script to solve it
 function create_maple_programm(equation_list)
     program = ""
@@ -179,32 +186,6 @@ function execute_maple_program(program)
     return result
 end
 
-# Writes equation to json file
-function write_equation_json(equation_list)
-    for i in 1:18
-        equation_list[i] = string(equation_list[i])
-        equation_list[i] = replace(equation_list[i], '[' => "")
-        equation_list[i] = replace(equation_list[i], ']' => "")
-        equation_list[i] = replace(equation_list[i], "Any" => "")
-    end
-
-    open("equation.json", "w") do file
-        for i in 1:18
-            print(file, equation_list[i])
-            print(file, "\n")
-        end
-    end
-end
-
-# Reads equation from json file
-function read_equation_json()
-    out_file = open("equation.json", "r")
-    result = readlines(out_file)
-    close(out_file)
-
-    return result
-end
-
 # Changes implicit multiplication in stritng to explicit multiplication
 function convert_eq_to_1d(equation)
     flag = false
@@ -233,6 +214,36 @@ function convert_eq_to_1d(equation)
 
     return equation
 end
+
+
+# ----------SAVING TO FILE----------
+# Writes equation to json file
+function write_equation_json(equation_list)
+    for i in 1:18
+        equation_list[i] = string(equation_list[i])
+        equation_list[i] = replace(equation_list[i], '[' => "")
+        equation_list[i] = replace(equation_list[i], ']' => "")
+        equation_list[i] = replace(equation_list[i], "Any" => "")
+    end
+
+    open("equation.json", "w") do file
+        for i in 1:18
+            print(file, equation_list[i])
+            print(file, "\n")
+        end
+    end
+end
+
+# Reads equation from json file
+function read_equation_json()
+    out_file = open("equation.json", "r")
+    result = readlines(out_file)
+    close(out_file)
+
+    return result
+end
+
+
 
 #=print("Starts...\n")
 #mechanism = read_mechanism()
